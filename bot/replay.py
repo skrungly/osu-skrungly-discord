@@ -5,7 +5,7 @@ from io import BytesIO
 from pathlib import Path
 
 import aiohttp
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
 REPLAY_WIDTH = 1920
 REPLAY_HEIGHT = 1080
@@ -16,7 +16,6 @@ BG_IMAGE_URLS = [
     "https://beatconnect.io/bg/{set_id}/{id}",
     "https://b.ppy.sh/thumb/{set_id}l.jpg",
 ]
-
 
 ASSETS_PATH = Path(".") / "assets"
 SKINS_PATH = ASSETS_PATH / "skins"
@@ -73,13 +72,13 @@ def _skin_element(name, skin):
     for skin_path in [SKINS_PATH / skin, DEFAULT_SKIN_PATH]:
         try:
             return Image.open(skin_path / f"{name}@2x.png").convert("RGBA")
-        except FileNotFoundError:
+        except (FileNotFoundError, UnidentifiedImageError):
             pass
 
         try:
             small = Image.open(skin_path / f"{name}.png").convert("RGBA")
             return _scale_image(small, 2)
-        except FileNotFoundError:
+        except (FileNotFoundError, UnidentifiedImageError):
             pass
 
     return Image.new("RGBA", (1, 1), (0, 0, 0, 0))
