@@ -7,6 +7,8 @@ from pathlib import Path
 import aiohttp
 from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
+from bot.utils import Mods
+
 REPLAY_WIDTH = 1920
 REPLAY_HEIGHT = 1080
 REPLAY_ASPECT = REPLAY_WIDTH / REPLAY_HEIGHT
@@ -22,44 +24,6 @@ SKINS_PATH = ASSETS_PATH / "skins"
 
 DEFAULT_BG_PATH = ASSETS_PATH / "bg.jpg"
 DEFAULT_SKIN_PATH = SKINS_PATH / "default"
-
-
-class SkinMods(IntFlag):
-    NOMOD = 0
-    NOFAIL = 1 << 0
-    EASY = 1 << 1
-    TOUCHSCREEN = 1 << 2  # old: 'NOVIDEO'
-    HIDDEN = 1 << 3
-    HARDROCK = 1 << 4
-    SUDDENDEATH = 1 << 5
-    DOUBLETIME = 1 << 6
-    RELAX = 1 << 7
-    HALFTIME = 1 << 8
-    NIGHTCORE = 1 << 9
-    FLASHLIGHT = 1 << 10
-    AUTOPLAY = 1 << 11
-    SPUNOUT = 1 << 12
-    RELAX2 = 1 << 13
-    PERFECT = 1 << 14
-    KEY4 = 1 << 15
-    KEY5 = 1 << 16
-    KEY6 = 1 << 17
-    KEY7 = 1 << 18
-    KEY8 = 1 << 19
-    FADEIN = 1 << 20
-    RANDOM = 1 << 21
-    CINEMA = 1 << 22
-    TARGET = 1 << 23
-    KEY9 = 1 << 24
-    KEYCOOP = 1 << 25
-    KEY1 = 1 << 26
-    KEY3 = 1 << 27
-    KEY2 = 1 << 28
-    SCOREV2 = 1 << 29
-    MIRROR = 1 << 30
-
-    def __str__(self):
-        return f"selection-mod-{self.name.lower()}"
 
 
 def _scale_image(img, scale):
@@ -190,7 +154,7 @@ USED_SKIN_ELEMENTS = [
         "perfect",
         "title",
     ]),
-    *(str(mod) for mod in SkinMods)
+    *(mod.skin_name for mod in Mods)
 ]
 
 
@@ -366,8 +330,8 @@ async def get_replay_screen(score, beatmap, username, skin):
         HIT_SPACING
     )
 
-    for index, mod in enumerate(SkinMods(score["mods"])):
-        with _skin_element(str(mod), skin) as mod_img:
+    for index, mod in enumerate(Mods(score["mods"])):
+        with _skin_element(mod.skin_name, skin) as mod_img:
             _paste_centred_scaled(
                 replay_img,
                 mod_img,

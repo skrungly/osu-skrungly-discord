@@ -1,4 +1,5 @@
 import os
+from enum import IntFlag
 from typing import Optional
 
 from aiohttp import ClientSession
@@ -12,6 +13,55 @@ MAP_DL_MIRROR = os.environ["MAP_DL_MIRROR"]
 
 API_URL = f"https://api.{DOMAIN}"
 API_STRFTIME = f"%Y-%m-%dT%H:%M:%S"
+
+
+class Mods(IntFlag):
+    NOFAIL = "NF"
+    EASY = "EZ"
+    TOUCH_SCREEN = "TS"
+    HIDDEN = "HD"
+    HARDROCK = "HR"
+    SUDDENDEATH = "SD"
+    DOUBLETIME = "DT"
+    RELAX = "RX"
+    HALFTIME = "HT"
+    NIGHTCORE = "NC"
+    FLASHLIGHT = "FL"
+    AUTOPLAY = "AT"
+    SPUNOUT = "SO"
+    RELAX2 = "AP"
+    PERFECT = "PF"
+    KEY4 = "4K"
+    KEY5 = "5K"
+    KEY6 = "6K"
+    KEY7 = "7K"
+    KEY8 = "8K"
+    FADEIN = "FI"
+    RANDOM = "RD"
+    CINEMA = "CM"
+    TARGET = "TP"
+    KEY9 = "9K"
+    KEYCOOP = "CP"
+    KEY1 = "1K"
+    KEY3 = "3K"
+    KEY2 = "2K"
+    SCOREV2 = "V2"
+    MIRROR = "MR"
+
+    def __new__(cls, acronym):
+        # a little bit jank but... it's fiiiiine.
+        value = 1 << len(cls._member_names_)
+        member = int.__new__(cls, value)
+        member._value_ = value
+        member.acronym = acronym
+        return member
+
+    @property
+    def skin_name(self):
+        if len(self) != 1:
+            raise ValueError("expected single mod for skin element")
+
+        return f"selection-mod-{self.name.lower()}"
 
 
 async def api_get(version: int, endpoint: str, params: Optional[dict] = None):
