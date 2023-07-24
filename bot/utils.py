@@ -76,6 +76,23 @@ async def api_get(version: int, endpoint: str, params: Optional[dict] = None):
             return response.status, content
 
 
+async def fetch_difficulty(map_id: int, mode: int, mods: Mods):
+    url = f"https://osu.{DOMAIN}/difficulty-rating"
+    difficulty = 0.0
+    data_json = {
+        "beatmap_id": map_id,
+        "ruleset_id": mode % 4,
+        "mods": [{"acronym": mod.acronym} for mod in mods]
+    }
+
+    async with ClientSession() as session:
+        async with session.post(url, json=data_json) as response:
+            if response.status == 200:
+                return float(await response.text())
+
+    return 0.0
+
+
 async def send_error(ctx, title, message=None):
     embed = Embed(
         title=title,

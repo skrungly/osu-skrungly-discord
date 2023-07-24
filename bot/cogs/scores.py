@@ -14,8 +14,10 @@ from bot.utils import (
     API_STRFTIME,
     API_URL,
     DOMAIN,
+    fetch_difficulty,
     fetch_player,
     MAP_DL_MIRROR,
+    Mods,
     send_error
 )
 
@@ -61,6 +63,12 @@ class Scores(commands.Cog):
         score = response["scores"][0]
         beatmap = score["beatmap"]
 
+        difficulty = await fetch_difficulty(
+            beatmap["id"],
+            score["mode"],
+            Mods(score["mods"])
+        )
+
         # api returns a string, so parse back into a usable format
         score["play_time"] = datetime.strptime(
             score["play_time"],
@@ -89,7 +97,13 @@ class Scores(commands.Cog):
             icon_url=f"https://a.{DOMAIN}/{player['id']}"
         )
 
-        embed.set_footer(text=f"{score['pp']}pp @ osu!skrungly")
+        footer_text = (
+            f"{score['pp']}pp "
+            f"| {difficulty:.02f} stars | "
+            f"osu!skrungly"
+        )
+
+        embed.set_footer(text=footer_text)
 
         view = ScoreView(beatmap["set_id"], score["id"])
 
