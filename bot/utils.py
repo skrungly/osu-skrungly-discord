@@ -7,7 +7,9 @@ from discord import Colour, Embed
 from discord.ext.commands import Context, Converter, MemberConverter
 from discord.ext.commands.errors import MemberNotFound
 
-DOMAIN = os.environ['DOMAIN']
+DOMAIN = os.environ["DOMAIN"]
+MAP_DL_MIRROR = os.environ["MAP_DL_MIRROR"]
+
 API_URL = f"https://api.{DOMAIN}"
 API_STRFTIME = f"%Y-%m-%dT%H:%M:%S"
 

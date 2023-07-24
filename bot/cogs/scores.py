@@ -4,11 +4,20 @@ from io import BytesIO
 from pathlib import Path
 from zipfile import ZipFile
 
-from discord import Colour, Embed, File
+from discord import ButtonStyle, Colour, Embed, File
 from discord.ext import commands
+from discord.ui import Button, View
 
-from bot.utils import api_get, API_STRFTIME, DOMAIN, fetch_player, send_error
 from bot.replay import get_replay_screen, SKINS_PATH, USED_SKIN_ELEMENTS
+from bot.utils import (
+    api_get,
+    API_STRFTIME,
+    API_URL,
+    DOMAIN,
+    fetch_player,
+    MAP_DL_MIRROR,
+    send_error
+)
 
 # limit skin files to 16MB to prevent silly things
 SKIN_MAX_FILE_SIZE = 16 * 1024 * 1024
@@ -18,7 +27,7 @@ class Scores(commands.Cog):
     def __init__(self, chatot):
         self.chatot = chatot
 
-    async def _get_score(self, ctx, user, scope):
+    async def _send_score(self, ctx, user, scope):
         player = (await fetch_player(ctx, user, scope="info")).get("info")
 
         if not player:
@@ -68,7 +77,7 @@ class Scores(commands.Cog):
             )
 
         embed = Embed(
-            title=f"{beatmap['artist']} - {beatmap['title']} [{beatmap['version']}]",
+            title="{artist} - {title} [{version}]".format(**beatmap),
             url=f"https://osu.{DOMAIN}/beatmapsets/{beatmap['set_id']}",
             colour=Colour.blue(),
             timestamp=score["play_time"]
@@ -82,15 +91,17 @@ class Scores(commands.Cog):
 
         embed.set_footer(text=f"{score['pp']}pp @ osu!skrungly")
 
+        view = ScoreView(beatmap["set_id"], score["id"])
+
         with BytesIO() as img_binary:
             replay_img.save(img_binary, "PNG")
             img_binary.seek(0)
 
-            filename=f"result{score['id']}.png"
+            filename = f"result{score['id']}.png"
             msg_file = File(fp=img_binary, filename=filename)
             embed.set_image(url=f"attachment://{filename}")
 
-            await ctx.reply(file=msg_file, embed=embed)
+            await ctx.reply(file=msg_file, embed=embed, view=view)
 
     @commands.group(invoke_without_command=True)
     async def score(self, ctx, user=None):
@@ -98,18 +109,18 @@ class Scores(commands.Cog):
 
     @score.command()
     async def last(self, ctx, user=None):
-        await self._get_score(ctx, user, scope="recent")
+        await self._send_score(ctx, user, scope="recent")
 
     @score.command()
     async def top(self, ctx, user=None):
-        await self._get_score(ctx, user, scope="best")
+        await self._send_score(ctx, user, scope="best")
 
     @commands.command()
     async def skin(self, ctx):
         attached = ctx.message.attachments
 
         if not attached:
-            await send_error(ctx, "please upload a skin alongside your command!")
+            await send_error(ctx, "please upload a skin with your command!")
             return
 
         elif len(attached) > 1:
@@ -179,7 +190,7 @@ class Scores(commands.Cog):
             if skipped_files:
                 await send_error(
                     ctx,
-                    title=f"skin file exceeds maximum permitted size",
+                    title="skin file exceeds maximum permitted size",
                     message=(
                         "if this was an accident; don't worry. the large "
                         "file has been skipped, and the rest of the skin "
@@ -197,6 +208,26 @@ class Scores(commands.Cog):
         )
 
         await ctx.reply(embed=embed)
+
+
+class ScoreView(View):
+    def __init__(self, mapset_id: int, replay_id: int):
+        super().__init__()
+
+        map_button = Button(
+            style=ButtonStyle.primary,
+            label="map",
+            url=f"{MAP_DL_MIRROR}/{mapset_id}"
+        )
+
+        replay_button = Button(
+            style=ButtonStyle.success,
+            label="replay",
+            url=f"{API_URL}/v1/get_replay?id={replay_id}"
+        )
+
+        self.add_item(map_button)
+        self.add_item(replay_button)
 
 
 async def setup(chatot):
