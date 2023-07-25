@@ -1,5 +1,5 @@
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from zipfile import ZipFile
@@ -97,13 +97,17 @@ class Scores(commands.Cog):
             icon_url=f"https://a.{DOMAIN}/{player['id']}"
         )
 
-        footer_text = (
-            f"{score['pp']}pp "
-            f"| {difficulty:.02f} stars | "
-            f"osu!skrungly"
-        )
+        duration = timedelta(seconds=beatmap["total_length"])
 
-        embed.set_footer(text=footer_text)
+        embed.add_field(name="performance", value=f"{score['pp']}pp")
+        embed.add_field(name="difficulty", value=f"{difficulty:.02f}*")
+        embed.add_field(name="\u200b", value="\u200b")  # empty field!
+
+        embed.add_field(name="duration", value=str(duration))
+        embed.add_field(name="max combo", value=f"{beatmap['max_combo']}x")
+        embed.add_field(name="speed", value=f"{beatmap['bpm']:g} bpm")
+
+        embed.set_footer(text="osu!skrungly")
 
         view = ScoreView(beatmap["set_id"], score["id"])
 
@@ -229,14 +233,12 @@ class ScoreView(View):
         super().__init__()
 
         map_button = Button(
-            style=ButtonStyle.primary,
-            label="map",
+            label="map (.osz)",
             url=f"{MAP_DL_MIRROR}/{mapset_id}"
         )
 
         replay_button = Button(
-            style=ButtonStyle.success,
-            label="replay",
+            label="replay (.osr)",
             url=f"{API_URL}/v1/get_replay?id={replay_id}"
         )
 
