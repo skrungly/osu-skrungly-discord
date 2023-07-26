@@ -62,11 +62,12 @@ class Scores(commands.Cog):
 
         score = response["scores"][0]
         beatmap = score["beatmap"]
+        mods = Mods(score["mods"])
 
         difficulty = await fetch_difficulty(
             beatmap["id"],
             score["mode"],
-            Mods(score["mods"])
+            mods,
         )
 
         # api returns a string, so parse back into a usable format
@@ -97,15 +98,17 @@ class Scores(commands.Cog):
             icon_url=f"https://a.{DOMAIN}/{player['id']}"
         )
 
-        duration = timedelta(seconds=beatmap["total_length"])
+        adjusted_bpm = beatmap['bpm'] * mods.speed
+        adjusted_length = int(beatmap["total_length"] / mods.speed)
+        duration_str = f"{adjusted_length // 60}:{adjusted_length % 60:02}"
 
         embed.add_field(name="performance", value=f"{score['pp']}pp")
-        embed.add_field(name="difficulty", value=f"{difficulty:.02f}*")
+        embed.add_field(name="star rating", value=f"{difficulty:.02f}*")
         embed.add_field(name="\u200b", value="\u200b")  # empty field!
 
-        embed.add_field(name="duration", value=str(duration))
+        embed.add_field(name="duration", value=duration_str)
         embed.add_field(name="max combo", value=f"{beatmap['max_combo']}x")
-        embed.add_field(name="speed", value=f"{beatmap['bpm']:g} bpm")
+        embed.add_field(name="speed", value=f"{adjusted_bpm:g} bpm")
 
         embed.set_footer(text="osu!skrungly")
 

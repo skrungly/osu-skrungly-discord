@@ -63,6 +63,16 @@ class Mods(IntFlag):
 
         return f"selection-mod-{self.name.lower()}"
 
+    @property
+    def speed(self):
+        if self.DOUBLETIME in self:
+            return 1.5
+
+        elif self.HALFTIME in self:
+            return 0.75
+
+        return 1.0
+
 
 async def api_get(version: int, endpoint: str, params: Optional[dict] = None):
     url = f"{API_URL}/v{version}/{endpoint}"
