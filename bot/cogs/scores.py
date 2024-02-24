@@ -4,11 +4,11 @@ from io import BytesIO
 from pathlib import Path
 from zipfile import ZipFile
 
-from discord import ButtonStyle, Colour, Embed, File
+from discord import ButtonStyle, Colour, Embed, File, User
 from discord.ext import commands
 from discord.ui import Button, View
 
-from bot.replay import get_replay_screen, SKINS_PATH, USED_SKIN_ELEMENTS
+from bot.replay import get_replay_screen, SKIN_FILES_PATH, SKIN_OSK_PATH
 from bot.utils import (
     api_get,
     API_STRFTIME,
@@ -21,8 +21,8 @@ from bot.utils import (
     send_error
 )
 
-# limit skin files to 16MB to prevent silly things
-SKIN_MAX_FILE_SIZE = 16 * 1024 * 1024
+# limit skins to 256MB (uncompressed) to prevent silly things
+SKIN_MAX_TOTAL_SIZE = 256 * 1024 * 1024
 
 
 class Scores(commands.Cog):
@@ -136,99 +136,115 @@ class Scores(commands.Cog):
     async def top(self, ctx, user=None):
         await self._send_score(ctx, user, scope="best")
 
-    @commands.command()
-    async def skin(self, ctx):
-        attached = ctx.message.attachments
+    async def _save_skin(self, ctx, osk_file):
+        # ensure there is a unique place to put the skin and osk
+        skin_folder = SKIN_FILES_PATH / str(ctx.author.id)
+        archive_folder = SKIN_OSK_PATH / str(ctx.author.id)
 
-        if not attached:
-            await send_error(ctx, "please upload a skin with your command!")
-            return
+        if skin_folder.exists():
+            shutil.rmtree(skin_folder)
 
-        elif len(attached) > 1:
-            await send_error(ctx, "please only upload one file!")
-            return
+        if archive_folder.exists():
+            shutil.rmtree(archive_folder)
 
-        skin_folder = SKINS_PATH / str(ctx.author.id)
+        skin_folder.mkdir()
+        archive_folder.mkdir()
 
-        async with ctx.typing():
-            # ensure there is a unique place to put the skin
-            if skin_folder.exists():
-                shutil.rmtree(skin_folder)
+        # we'll store the osk as-is in a user-identifiable folder
+        await osk_file.save(archive_folder / osk_file.filename)
 
-            skin_folder.mkdir()
+        # set up a buffer for the zip file to read from
+        osk_buffer = BytesIO()
+        await osk_file.save(osk_buffer)
+        osk = ZipFile(osk_buffer)
 
-            # set up a buffer for the zip file to read from
-            osz_buffer = BytesIO()
-            await attached[0].save(osz_buffer)
-            osz = ZipFile(osz_buffer)
+        # extract the archive file-by-file
+        total_size = 0
+        for zipped_file in osk.infolist():
+            if zipped_file.is_dir():
+                continue
 
-            # scan each file to find relevant skin elements
-            valid_file = False
-            skipped_files = False
-            for zip_info in osz.infolist():
-                if zip_info.is_dir():
-                    continue
+            total_size += zipped_file.file_size
 
-                skin_element = Path(zip_info.filename).stem
-                if skin_element.endswith("@2x"):
-                    skin_element = skin_element[:-3]
-
-                if skin_element in USED_SKIN_ELEMENTS:
-                    # do a quick check for decompression bombs
-                    if zip_info.file_size > SKIN_MAX_FILE_SIZE:
-                        skipped_files = True
-                        continue
-
-                    # by renaming the filename for this ZipInfo,
-                    # we can force all skin elements to be in the
-                    # root of the skin folder. if there are file
-                    # clashes then that's the user's problem. :)
-                    zip_info.filename = Path(zip_info.filename).name
-
-                    # we have found at least one valid skin file,
-                    # so we can confirm this to the user later.
-                    valid_file = True
-                    await self.chatot.loop.run_in_executor(
-                        None,
-                        osz.extract,
-                        zip_info,
-                        Path(skin_folder)
-                    )
-
-            if not valid_file:
-                await send_error(
-                    ctx,
-                    title="could not find any valid skin elements!",
-                    message=(
-                        "upload your skin as a `.zip` or `.osk` file. "
-                        "if it still doesn't work, make sure the skin "
-                        "files are at the base of the zip archive. "
-                    )
+            # do a quick check for decompression bombs
+            if total_size > SKIN_MAX_TOTAL_SIZE:
+                return Embed(
+                    title="oops!",
+                    description="skin exceeds maximum permitted size!",
+                    color=Colour.brand_red()
                 )
 
-                return
+            # by renaming the filename for this ZipInfo,
+            # we can force all skin elements to be in the
+            # root of the skin folder, rather than in a
+            # folder of the zipfile etc.
+            zipped_file.filename = Path(zipped_file.filename).name
 
-            if skipped_files:
-                await send_error(
-                    ctx,
-                    title="skin file exceeds maximum permitted size",
-                    message=(
-                        "if this was an accident; don't worry. the large "
-                        "file has been skipped, and the rest of the skin "
-                        "should appear as normal.\n\n"
-                        "if this was a zip bomb; nice try."
-                    )
-                )
+            await self.chatot.loop.run_in_executor(
+                None,
+                osk.extract,
+                zipped_file,
+                Path(skin_folder)
+            )
 
-        osz_buffer.close()
-        osz.close()
+        osk_buffer.close()
+        osk.close()
 
-        embed = Embed(
-            title="custom skin has been set!",
+        return Embed(
+            title="skin saved successfully!",
             color=Colour.brand_green()
         )
 
-        await ctx.reply(embed=embed)
+    async def _get_skin(self, ctx, user_arg):
+        if user_arg is not None:
+            try:
+                user = await commands.MemberConverter().convert(ctx, user_arg)
+            except commands.MemberNotFound:
+                return
+        else:
+            user = ctx.author
+
+        archive_folder = SKIN_OSK_PATH / str(user.id)
+
+        if archive_folder.exists():
+            skin_path = list(archive_folder.iterdir())[0]
+            return File(skin_path)  # there should just be the one file
+
+    @commands.command()
+    async def skin(self, ctx, user=None):
+        attachments = ctx.message.attachments
+
+        reply_file = None
+        reply_embed = None
+
+        async with ctx.typing():
+            if attachments:
+                if user is not None:
+                    reply_embed = Embed(
+                        title="please specify a skin or a user, not both!",
+                        color=Colour.brand_red()
+                    )
+
+                elif len(attachments) > 1:
+                    reply_embed = Embed(
+                        title="please only provide one file for your skin!",
+                        color=Colour.brand_red()
+                    )
+
+                else:
+                    reply_embed = await self._save_skin(ctx, attachments[0])
+
+            # if a skin wasn't attached, return a given user's skin instead
+            else:
+                reply_file = await self._get_skin(ctx, user)
+
+                if not reply_file:
+                    reply_embed = Embed(
+                        title=f"user has not uploaded a skin yet!",
+                        color=Colour.brand_red()
+                    )
+
+            await ctx.reply(embed=reply_embed, file=reply_file)
 
 
 class ScoreView(View):
