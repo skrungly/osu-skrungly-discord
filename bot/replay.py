@@ -17,10 +17,13 @@ REPLAY_RESOLUTION = (REPLAY_WIDTH, REPLAY_HEIGHT)
 BG_IMAGE_URLS = ["https://b.ppy.sh/thumb/{set_id}l.jpg"]
 
 ASSETS_PATH = Path(".") / "assets"
-SKINS_PATH = ASSETS_PATH / "skins"
+ALLER_FONT_PATH = str(ASSETS_PATH / "font" / "Aller_Lt.ttf")
+
+SKIN_FILES_PATH = ASSETS_PATH / "skins" / "files"
+SKIN_OSK_PATH = ASSETS_PATH / "skins" / "osk"
 
 DEFAULT_BG_PATH = ASSETS_PATH / "bg.jpg"
-DEFAULT_SKIN_PATH = SKINS_PATH / "default"
+DEFAULT_SKIN_PATH = SKIN_FILES_PATH / "default"
 
 
 def _scale_image(img, scale):
@@ -30,7 +33,7 @@ def _scale_image(img, scale):
 
 
 def _skin_element(name, skin):
-    for skin_path in [SKINS_PATH / skin, DEFAULT_SKIN_PATH]:
+    for skin_path in [SKIN_FILES_PATH / skin, DEFAULT_SKIN_PATH]:
         try:
             return Image.open(skin_path / f"{name}@2x.png").convert("RGBA")
         except (FileNotFoundError, UnidentifiedImageError):
@@ -48,7 +51,6 @@ def _skin_element(name, skin):
 # the top 1/8th of the screen is a dark header for map info
 HEADER_HEIGHT = REPLAY_HEIGHT // 8 - 1
 
-ALLER_FONT_PATH = str(ASSETS_PATH / "font" / "Aller_Lt.ttf")
 TITLE_FONT_SIZE = REPLAY_HEIGHT / 26
 TITLE_FONT = ImageFont.truetype(ALLER_FONT_PATH, TITLE_FONT_SIZE)
 SMALL_FONT_SIZE = REPLAY_HEIGHT / 36
@@ -136,23 +138,6 @@ STATS_Y = int(REPLAY_HEIGHT // 1.6)
 STATS_SCALE = REPLAY_HEIGHT / 1532
 STATS_OFFSET_X = REPLAY_HEIGHT // 50
 STATS_OFFSET_Y = REPLAY_HEIGHT // 16
-
-USED_SKIN_ELEMENTS = [
-    *(name for mode in JUDGE_NAMES for _, name in mode if name),
-    *(f"score-{char}" for char, _ in NUMERIC_CHARS),
-    *(f"ranking-{item}" for item in [
-        *"XSABCD",
-        "XH",
-        "SH",
-        "accuracy",
-        "graph",
-        "maxcombo",
-        "panel",
-        "perfect",
-        "title",
-    ]),
-    *(mod.skin_name for mod in Mods)
-]
 
 
 def _paste_centred_scaled(bg, fg, x, y, scale):
