@@ -23,6 +23,7 @@ from bot.utils import (
 
 # limit skins to 256MB (uncompressed) to prevent silly things
 SKIN_MAX_TOTAL_SIZE = 256 * 1024 * 1024
+SKIN_DOWNLOAD_URL = f"https://assets.{DOMAIN}/skins"
 
 
 class Scores(commands.Cog):
@@ -200,51 +201,58 @@ class Scores(commands.Cog):
             try:
                 user = await commands.MemberConverter().convert(ctx, user_arg)
             except commands.MemberNotFound:
-                return
+                return Embed(
+                    title="could not find that player",
+                    color=Colour.brand_red()
+                )
         else:
             user = ctx.author
 
         archive_folder = SKIN_OSK_PATH / str(user.id)
 
         if archive_folder.exists():
+            # there should just be the one file
             skin_path = list(archive_folder.iterdir())[0]
-            return File(skin_path)  # there should just be the one file
+            skin_link = f"{SKIN_DOWNLOAD_URL}/{user.id}/{skin_path.name}"
+
+            return Embed(
+                title="skin request successful!",
+                description=f"click [here]({skin_link}) to download it.",
+                color=Colour.brand_green()
+            )
+
+        return Embed(
+            title=f"user has not uploaded a skin yet!",
+            color=Colour.brand_red()
+        )
 
     @commands.command()
     async def skin(self, ctx, user=None):
         attachments = ctx.message.attachments
-
-        reply_file = None
         reply_embed = None
 
-        async with ctx.typing():
-            if attachments:
-                if user is not None:
-                    reply_embed = Embed(
-                        title="please specify a skin or a user, not both!",
-                        color=Colour.brand_red()
-                    )
+        if attachments:
+            if user is not None:
+                reply_embed = Embed(
+                    title="please specify a skin or a user, not both!",
+                    color=Colour.brand_red()
+                )
 
-                elif len(attachments) > 1:
-                    reply_embed = Embed(
-                        title="please only provide one file for your skin!",
-                        color=Colour.brand_red()
-                    )
+            elif len(attachments) > 1:
+                reply_embed = Embed(
+                    title="please only provide one file for your skin!",
+                    color=Colour.brand_red()
+                )
 
-                else:
+            else:
+                async with ctx.typing():
                     reply_embed = await self._save_skin(ctx, attachments[0])
 
-            # if a skin wasn't attached, return a given user's skin instead
-            else:
-                reply_file = await self._get_skin(ctx, user)
+        # if a skin wasn't attached, return a given user's skin instead
+        else:
+            reply_embed = await self._get_skin(ctx, user)
 
-                if not reply_file:
-                    reply_embed = Embed(
-                        title=f"user has not uploaded a skin yet!",
-                        color=Colour.brand_red()
-                    )
-
-            await ctx.reply(embed=reply_embed, file=reply_file)
+        await ctx.reply(embed=reply_embed)
 
 
 class ScoreView(View):
