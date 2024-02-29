@@ -1,6 +1,3 @@
-import datetime
-import itertools
-from enum import IntFlag
 from io import BytesIO
 from pathlib import Path
 
@@ -70,7 +67,7 @@ NUMERIC_CHARS = (
 )
 
 SCORE_SCALE = REPLAY_HEIGHT / 1175  # ish?
-HIT_SCALE = REPLAY_HEIGHT / 1375 # also ish?
+HIT_SCALE = REPLAY_HEIGHT / 1375  # also ish?
 
 SCORE_X = 8 + REPLAY_HEIGHT // 4
 SCORE_Y = (REPLAY_HEIGHT * 7) // 36

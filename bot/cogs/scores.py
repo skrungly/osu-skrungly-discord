@@ -1,10 +1,10 @@
 import shutil
-from datetime import datetime, timedelta
+from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from zipfile import ZipFile
 
-from discord import ButtonStyle, Colour, Embed, File, User
+from discord import Colour, Embed, File
 from discord.ext import commands
 from discord.ui import Button, View
 
@@ -222,7 +222,7 @@ class Scores(commands.Cog):
             )
 
         return Embed(
-            title=f"user has not uploaded a skin yet!",
+            title="user has not uploaded a skin yet!",
             color=Colour.brand_red()
         )
 

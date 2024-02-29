@@ -3,16 +3,15 @@ from enum import IntFlag
 from typing import Optional
 
 from aiohttp import ClientSession
-from aiohttp.web import HTTPNotFound
 from discord import Colour, Embed
-from discord.ext.commands import Context, Converter, MemberConverter
+from discord.ext.commands import MemberConverter
 from discord.ext.commands.errors import MemberNotFound
 
 DOMAIN = os.environ["DOMAIN"]
 MAP_DL_MIRROR = os.environ["MAP_DL_MIRROR"]
 
 API_URL = f"https://api.{DOMAIN}"
-API_STRFTIME = f"%Y-%m-%dT%H:%M:%S"
+API_STRFTIME = "%Y-%m-%dT%H:%M:%S"
 
 
 class Mods(IntFlag):
@@ -88,7 +87,6 @@ async def api_get(version: int, endpoint: str, params: Optional[dict] = None):
 
 async def fetch_difficulty(map_id: int, mode: int, mods: Mods):
     url = f"https://osu.{DOMAIN}/difficulty-rating"
-    difficulty = 0.0
     data_json = {
         "beatmap_id": map_id,
         "ruleset_id": mode % 4,
