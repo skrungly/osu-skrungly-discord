@@ -11,10 +11,7 @@ REPLAY_HEIGHT = 1080
 REPLAY_ASPECT = REPLAY_WIDTH / REPLAY_HEIGHT
 REPLAY_RESOLUTION = (REPLAY_WIDTH, REPLAY_HEIGHT)
 
-BG_IMAGE_URLS = [
-    "https://beatconnect.io/bg/{set_id}/{id}",
-    "https://b.ppy.sh/thumb/{set_id}l.jpg",
-]
+BG_IMAGE_URLS = ["https://b.ppy.sh/thumb/{set_id}l.jpg"]
 
 ASSETS_PATH = Path(".") / "assets"
 ALLER_FONT_PATH = str(ASSETS_PATH / "font" / "Aller_Lt.ttf")
