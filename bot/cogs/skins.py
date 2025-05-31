@@ -1,7 +1,7 @@
 from discord import Embed, Colour
 from discord.ext import commands
 
-from bot.constants import DOMAIN, NEW_API_URL
+from bot.constants import DOMAIN, API_URL
 from bot.utils import fetch_player, send_error
 
 
@@ -29,7 +29,7 @@ class Skins(commands.Cog):
         if not player_info:
             return  # error already sent by fetch_player
 
-        skin_link = f"{NEW_API_URL}/players/{player_info['info']['name']}/skin"
+        skin_link = f"{API_URL}/players/{player_info['info']['name']}/skin"
 
         embed = Embed(
             title="skin request successful!",
