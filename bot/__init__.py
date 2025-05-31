@@ -2,8 +2,7 @@ import traceback
 
 from discord.ext import commands
 
-from bot.constants import API_URL
-from bot.utils import send_error
+from bot.utils import api_get, resolve_player_info, send_error
 
 
 class Chatot(commands.Bot):
@@ -19,5 +18,9 @@ class Chatot(commands.Bot):
         await send_error(ctx, "oops! something broke.", f"```{msg_block}```")
 
     async def api_get(self, endpoint, params=None):
-        """Send a GET request to an endpoint on the API."""
-        return await self.http_session.get(f"{API_URL}/{endpoint}", params=params)
+        """A wrapper around `bot.utils.api_get`."""
+        return await api_get(self.http_session, endpoint, params)
+
+    async def resolve_player_info(self, ctx, user=None):
+        """A wrapper around `bot.utils.resolve_player_info`."""
+        return await resolve_player_info(self.http_session, ctx, user)

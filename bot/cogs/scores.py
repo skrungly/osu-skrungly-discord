@@ -6,12 +6,7 @@ from discord.ext import commands
 from discord.ui import Button, View
 
 from bot.constants import API_STRFTIME, DOMAIN, MAP_DL_MIRROR
-from bot.utils import (
-    fetch_difficulty,
-    fetch_player,
-    Mods,
-    send_error
-)
+from bot.utils import fetch_difficulty, Mods, send_error
 
 
 class Scores(commands.Cog):
@@ -20,7 +15,7 @@ class Scores(commands.Cog):
 
     @commands.command()
     async def score(self, ctx, user=None):
-        player = (await fetch_player(ctx, user, scope="info")).get("info")
+        player = await self.chatot.resolve_player_info(ctx, user)
         if not player:
             return
 

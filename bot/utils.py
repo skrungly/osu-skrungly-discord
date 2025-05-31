@@ -6,7 +6,7 @@ from discord import Colour, Embed
 from discord.ext.commands import MemberConverter
 from discord.ext.commands.errors import MemberNotFound
 
-from bot.constants import DOMAIN, OLD_API_URL
+from bot.constants import API_URL, DOMAIN, OLD_API_URL
 
 
 class Mods(IntFlag):
@@ -106,41 +106,53 @@ async def send_error(ctx, title, message=None):
     await ctx.reply(embed=embed)
 
 
-async def fetch_player(ctx, user, scope="all"):
-    if user:
-        # attempt to match a discord member to use their name
-        try:
-            member = await MemberConverter().convert(ctx, user)
-            name = member.display_name
+async def api_get(session, endpoint, params=None):
+    """Send a GET request to an endpoint on the API."""
+    return await session.get(f"{API_URL}/{endpoint}", params=params)
 
-        # otherwise, just use the name as given
+
+async def resolve_player_info(session, ctx, user=None):
+    """Attempt to resolve player info from a command argument.
+
+    Args:
+      session:
+        An open session with which to perform the request.
+      ctx:
+        The context of the command.
+      user:
+        An optional user to fetch player info about. If a string is
+        provided and can be converted to a discord Member instance,
+        then their display name is used for the player query. If this
+        fails, the given user string will be used as-is. If no user is
+        specified, the author of the command is used instead.
+
+    Returns:
+        A dict containing player data if successful, else None.
+    """
+
+    if user:
+        try:  # attempt to match a discord member to use their name
+            member = await MemberConverter().convert(ctx, user)
         except MemberNotFound:
             name = user
-
-    # if no name was specified, default to self
+        else:  # if the conversion was successful:
+            name = member.display_name
     else:
         name = ctx.author.display_name
 
-    status, response = await old_api_get(
-        version=1,
-        endpoint="get_player_info",
-        params={"name": name, "scope": scope}
-    )
+    async with await api_get(session, f"/players/{name}") as response:
+        player_info = await response.json()
 
-    err_msg = None
+    if response.status == 200:
+        return player_info
 
-    if status == 404:
+    elif response.status == 404:
         if user:
             err_msg = "make sure you typed the username correctly!"
         else:
-            err_msg = "your discord nickname doesn't match any osu! players."
+            err_msg = "your discord nickname doesn't match any players."
+    else:
+        err_msg = "something really broke. good luck!"
 
-    elif status != 200:
-        err_msg = "something really broke. time to annoy kingsley!"
-
-    if err_msg:
-        err_title = f"could not get info for player *{name}*"
-        await send_error(ctx, err_title, err_msg)
-        return response
-
-    return response["player"]
+    err_title = f"could not get info for player *{name}*"
+    await send_error(ctx, err_title, err_msg)
