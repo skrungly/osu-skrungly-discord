@@ -6,58 +6,55 @@ from discord.ext import commands
 from discord.ui import Button, View
 
 from bot.constants import API_STRFTIME, DOMAIN, MAP_DL_MIRROR
-from bot.replay import get_replay_screen
 from bot.utils import (
-    old_api_get,
     fetch_difficulty,
     fetch_player,
     Mods,
     send_error
 )
 
-# limit skins to 256MB (uncompressed) to prevent silly things
-SKIN_MAX_TOTAL_SIZE = 256 * 1024 * 1024
-SKIN_DOWNLOAD_URL = f"https://assets.{DOMAIN}/skins"
-
 
 class Scores(commands.Cog):
     def __init__(self, chatot):
         self.chatot = chatot
 
-    async def _send_score(self, ctx, user, scope):
+    @commands.command()
+    async def score(self, ctx, user=None):
         player = (await fetch_player(ctx, user, scope="info")).get("info")
-
         if not player:
             return
 
-        status, response = await old_api_get(
-            version=1,
-            endpoint="get_player_scores",
+        info_response = await self.chatot.api_get(
+            endpoint=f"/players/{player['id']}/scores",
             params={
-                "id": player["id"],
-                "limit": 1,
-                "include_failed": "False",
-                "scope": scope
+                "sort": "recent",
+                "limit": 1
             }
         )
 
-        if status != 200:
-            return await send_error(
-                ctx,
-                f"something went wrong fetching {scope} score!",
-                "this is definitely an issue to get kingsley to sort out."
-            )
+        async with info_response:
+            if info_response.status != 200:
+                await send_error(ctx, "unable to fetch scores.")
+                return
 
-        if not response["scores"]:
-            return await send_error(
+            scores = await info_response.json()
+
+        if not scores:
+            await send_error(
                 ctx,
                 f"couldn't find any scores for player {player['name']}!",
                 "if this seems wrong, it seriously is. let kingsley know!"
             )
+            return
 
-        score = response["scores"][0]
+        score = scores[0]
         beatmap = score["beatmap"]
         mods = Mods(score["mods"])
+
+        # api returns a string, so parse back into a usable format
+        score["play_time"] = datetime.strptime(
+            score["play_time"], API_STRFTIME
+        )
 
         difficulty = await fetch_difficulty(
             beatmap["id"],
@@ -65,20 +62,17 @@ class Scores(commands.Cog):
             mods,
         )
 
-        # api returns a string, so parse back into a usable format
-        score["play_time"] = datetime.strptime(
-            score["play_time"],
-            API_STRFTIME
-        )
-
         async with ctx.typing():
-            # TODO: should probs make this properly non-blocking
-            replay_img = await get_replay_screen(
-                score,
-                beatmap,
-                player["name"],
-                str(ctx.author.id)
+            img_response = await self.chatot.api_get(
+                endpoint=f"/scores/{score['id']}/screen"
             )
+
+            async with img_response:
+                if info_response.status != 200:
+                    await send_error(ctx, "score screenshot not available.")
+
+                img_buffer = BytesIO(await img_response.read())
+                img_buffer.seek(0)
 
         embed = Embed(
             title="{artist} - {title} [{version}]".format(**beatmap),
@@ -109,27 +103,11 @@ class Scores(commands.Cog):
 
         view = ScoreView(beatmap["set_id"], score["id"])
 
-        with BytesIO() as img_binary:
-            replay_img.save(img_binary, "PNG")
-            img_binary.seek(0)
+        filename = f"result{score['id']}.png"
+        msg_file = File(fp=img_buffer, filename=filename)
+        embed.set_image(url=f"attachment://{filename}")
 
-            filename = f"result{score['id']}.png"
-            msg_file = File(fp=img_binary, filename=filename)
-            embed.set_image(url=f"attachment://{filename}")
-
-            await ctx.reply(file=msg_file, embed=embed, view=view)
-
-    @commands.group(invoke_without_command=True)
-    async def score(self, ctx, user=None):
-        await ctx.invoke(self.chatot.get_command("score last"), user)
-
-    @score.command()
-    async def last(self, ctx, user=None):
-        await self._send_score(ctx, user, scope="recent")
-
-    @score.command()
-    async def top(self, ctx, user=None):
-        await self._send_score(ctx, user, scope="best")
+        await ctx.reply(file=msg_file, embed=embed, view=view)
 
 
 class ScoreView(View):
