@@ -52,9 +52,7 @@ class Scores(commands.Cog):
         )
 
         difficulty = await fetch_difficulty(
-            beatmap["id"],
-            score["mode"],
-            mods,
+            self.chatot.http_session, beatmap["id"], score["mode"], mods
         )
 
         async with ctx.typing():

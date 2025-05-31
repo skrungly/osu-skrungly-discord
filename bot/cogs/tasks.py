@@ -12,7 +12,7 @@ class Tasks(commands.Cog):
     @tasks.loop(seconds=20)
     async def status_loop(self):
         api_status, response = await old_api_get(
-            version=1, endpoint="get_player_count"
+            self.chatot.http_session, version=1, endpoint="get_player_count"
         )
 
         bot_status = Status.idle
@@ -34,8 +34,10 @@ class Tasks(commands.Cog):
         activity = Activity(type=activity_type, name=message)
 
         if self.chatot.current_status != message:
-            await self.chatot.change_presence(activity=activity, status=bot_status)
             self.chatot.current_status = message
+            await self.chatot.change_presence(
+                activity=activity, status=bot_status
+            )
 
     @status_loop.before_loop
     async def before_status_loop(self):

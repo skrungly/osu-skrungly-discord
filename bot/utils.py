@@ -1,9 +1,8 @@
 from enum import IntFlag
-from typing import Optional
 
-from aiohttp import ClientSession
+import aiohttp
 from discord import Colour, Embed
-from discord.ext.commands import MemberConverter
+from discord.ext.commands import Context, MemberConverter
 from discord.ext.commands.errors import MemberNotFound
 
 from bot.constants import API_URL, DOMAIN, OLD_API_URL
@@ -68,19 +67,28 @@ class Mods(IntFlag):
         return 1.0
 
 
-async def old_api_get(version: int, endpoint: str, params: Optional[dict] = None):
+async def old_api_get(
+    session: aiohttp.ClientSession,
+    version: int,
+    endpoint: str,
+    params: dict | None = None
+):
     url = f"{OLD_API_URL}/v{version}/{endpoint}"
     content = {}
 
-    async with ClientSession() as session:
-        async with session.get(url, params=params) as response:
-            if response.status == 200:
-                content = await response.json()
+    async with session.get(url, params=params) as response:
+        if response.status == 200:
+            content = await response.json()
 
-            return response.status, content
+        return response.status, content
 
 
-async def fetch_difficulty(map_id: int, mode: int, mods: Mods):
+async def fetch_difficulty(
+    session: aiohttp.ClientSession,
+    map_id: int,
+    mode: int,
+    mods: Mods
+):
     url = f"https://osu.{DOMAIN}/difficulty-rating"
     data_json = {
         "beatmap_id": map_id,
@@ -88,15 +96,14 @@ async def fetch_difficulty(map_id: int, mode: int, mods: Mods):
         "mods": [{"acronym": mod.acronym} for mod in mods]
     }
 
-    async with ClientSession() as session:
-        async with session.post(url, json=data_json) as response:
-            if response.status == 200:
-                return float(await response.text())
+    async with session.post(url, json=data_json) as response:
+        if response.status == 200:
+            return float(await response.text())
 
     return 0.0
 
 
-async def send_error(ctx, title, message=None):
+async def send_error(ctx: Context, title: str, message: str | None = None):
     embed = Embed(
         title=title,
         color=Colour.brand_red(),
@@ -106,12 +113,20 @@ async def send_error(ctx, title, message=None):
     await ctx.reply(embed=embed)
 
 
-async def api_get(session, endpoint, params=None):
+async def api_get(
+    session: aiohttp.ClientSession,
+    endpoint: str,
+    params: dict | None = None
+):
     """Send a GET request to an endpoint on the API."""
     return await session.get(f"{API_URL}/{endpoint}", params=params)
 
 
-async def resolve_player_info(session, ctx, user=None):
+async def resolve_player_info(
+    session: aiohttp.ClientSession,
+    ctx: Context,
+    user: str | None = None
+):
     """Attempt to resolve player info from a command argument.
 
     Args:
