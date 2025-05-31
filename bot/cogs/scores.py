@@ -1,22 +1,16 @@
-import shutil
 from datetime import datetime
 from io import BytesIO
-from pathlib import Path
-from zipfile import ZipFile
 
 from discord import Colour, Embed, File
 from discord.ext import commands
 from discord.ui import Button, View
 
-from bot.replay import get_replay_screen, SKIN_FILES_PATH, SKIN_OSK_PATH
+from bot.constants import API_STRFTIME, DOMAIN, MAP_DL_MIRROR
+from bot.replay import get_replay_screen
 from bot.utils import (
-    api_get,
-    API_STRFTIME,
-    API_URL,
-    DOMAIN,
+    old_api_get,
     fetch_difficulty,
     fetch_player,
-    MAP_DL_MIRROR,
     Mods,
     send_error
 )
@@ -36,7 +30,7 @@ class Scores(commands.Cog):
         if not player:
             return
 
-        status, response = await api_get(
+        status, response = await old_api_get(
             version=1,
             endpoint="get_player_scores",
             params={
@@ -137,123 +131,6 @@ class Scores(commands.Cog):
     async def top(self, ctx, user=None):
         await self._send_score(ctx, user, scope="best")
 
-    async def _save_skin(self, ctx, osk_file):
-        # ensure there is a unique place to put the skin and osk
-        skin_folder = SKIN_FILES_PATH / str(ctx.author.id)
-        archive_folder = SKIN_OSK_PATH / str(ctx.author.id)
-
-        if skin_folder.exists():
-            shutil.rmtree(skin_folder)
-
-        if archive_folder.exists():
-            shutil.rmtree(archive_folder)
-
-        skin_folder.mkdir()
-        archive_folder.mkdir()
-
-        # we'll store the osk as-is in a user-identifiable folder
-        await osk_file.save(archive_folder / osk_file.filename)
-
-        # set up a buffer for the zip file to read from
-        osk_buffer = BytesIO()
-        await osk_file.save(osk_buffer)
-        osk = ZipFile(osk_buffer)
-
-        # extract the archive file-by-file
-        total_size = 0
-        for zipped_file in osk.infolist():
-            if zipped_file.is_dir():
-                continue
-
-            total_size += zipped_file.file_size
-
-            # do a quick check for decompression bombs
-            if total_size > SKIN_MAX_TOTAL_SIZE:
-                return Embed(
-                    title="oops!",
-                    description="skin exceeds maximum permitted size!",
-                    color=Colour.brand_red()
-                )
-
-            # by renaming the filename for this ZipInfo,
-            # we can force all skin elements to be in the
-            # root of the skin folder, rather than in a
-            # folder of the zipfile etc.
-            zipped_file.filename = Path(zipped_file.filename).name
-
-            await self.chatot.loop.run_in_executor(
-                None,
-                osk.extract,
-                zipped_file,
-                Path(skin_folder)
-            )
-
-        osk_buffer.close()
-        osk.close()
-
-        return Embed(
-            title="skin saved successfully!",
-            color=Colour.brand_green()
-        )
-
-    async def _get_skin(self, ctx, user_arg):
-        if user_arg is not None:
-            try:
-                user = await commands.MemberConverter().convert(ctx, user_arg)
-            except commands.MemberNotFound:
-                return Embed(
-                    title="could not find that player",
-                    color=Colour.brand_red()
-                )
-        else:
-            user = ctx.author
-
-        archive_folder = SKIN_OSK_PATH / str(user.id)
-
-        if archive_folder.exists():
-            # there should just be the one file
-            skin_path = list(archive_folder.iterdir())[0]
-            skin_link = f"{SKIN_DOWNLOAD_URL}/{user.id}/{skin_path.name}"
-
-            return Embed(
-                title="skin request successful!",
-                description=f"click [here]({skin_link}) to download it.",
-                color=Colour.brand_green()
-            )
-
-        return Embed(
-            title="user has not uploaded a skin yet!",
-            color=Colour.brand_red()
-        )
-
-    @commands.command()
-    async def skin(self, ctx, user=None):
-        attachments = ctx.message.attachments
-        reply_embed = None
-
-        if attachments:
-            if user is not None:
-                reply_embed = Embed(
-                    title="please specify a skin or a user, not both!",
-                    color=Colour.brand_red()
-                )
-
-            elif len(attachments) > 1:
-                reply_embed = Embed(
-                    title="please only provide one file for your skin!",
-                    color=Colour.brand_red()
-                )
-
-            else:
-                async with ctx.typing():
-                    reply_embed = await self._save_skin(ctx, attachments[0])
-
-        # if a skin wasn't attached, return a given user's skin instead
-        else:
-            reply_embed = await self._get_skin(ctx, user)
-
-        await ctx.reply(embed=reply_embed)
-
 
 class ScoreView(View):
     def __init__(self, mapset_id: int, replay_id: int):
@@ -266,7 +143,7 @@ class ScoreView(View):
 
         replay_button = Button(
             label="replay (.osr)",
-            url=f"{API_URL}/v1/get_replay?id={replay_id}"
+            url=f"https://api.{DOMAIN}/v1/get_replay?id={replay_id}"
         )
 
         self.add_item(map_button)

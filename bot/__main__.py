@@ -5,7 +5,7 @@ import traceback
 from discord import Activity, ActivityType, Intents, Status
 from discord.ext import commands, tasks
 
-from bot.utils import api_get, send_error
+from bot.utils import old_api_get, send_error
 
 intents = Intents.default()
 intents.message_content = True
@@ -20,7 +20,7 @@ chatot.current_status = None
 
 @tasks.loop(seconds=20)
 async def status_loop():
-    api_status, response = await api_get(version=1, endpoint="get_player_count")
+    api_status, response = await old_api_get(version=1, endpoint="get_player_count")
 
     bot_status = Status.idle
     activity_type = ActivityType.watching
@@ -64,6 +64,7 @@ async def on_command_error(ctx, err):
 async def main():
     async with chatot:
         await chatot.load_extension("bot.cogs.scores")
+        await chatot.load_extension("bot.cogs.skins")
         await chatot.start(os.environ["BOT_TOKEN"])
 
 

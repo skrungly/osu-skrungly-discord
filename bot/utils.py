@@ -1,4 +1,3 @@
-import os
 from enum import IntFlag
 from typing import Optional
 
@@ -7,11 +6,7 @@ from discord import Colour, Embed
 from discord.ext.commands import MemberConverter
 from discord.ext.commands.errors import MemberNotFound
 
-DOMAIN = os.environ["DOMAIN"]
-MAP_DL_MIRROR = os.environ["MAP_DL_MIRROR"]
-
-API_URL = f"https://api.{DOMAIN}"
-API_STRFTIME = "%Y-%m-%dT%H:%M:%S"
+from bot.constants import DOMAIN, OLD_API_URL
 
 
 class Mods(IntFlag):
@@ -73,8 +68,8 @@ class Mods(IntFlag):
         return 1.0
 
 
-async def api_get(version: int, endpoint: str, params: Optional[dict] = None):
-    url = f"{API_URL}/v{version}/{endpoint}"
+async def old_api_get(version: int, endpoint: str, params: Optional[dict] = None):
+    url = f"{OLD_API_URL}/v{version}/{endpoint}"
     content = {}
 
     async with ClientSession() as session:
@@ -126,7 +121,7 @@ async def fetch_player(ctx, user, scope="all"):
     else:
         name = ctx.author.display_name
 
-    status, response = await api_get(
+    status, response = await old_api_get(
         version=1,
         endpoint="get_player_info",
         params={"name": name, "scope": scope}
