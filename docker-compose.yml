@@ -3,10 +3,6 @@ name: osu-discord
 services:
   bot:
     build: .
-    environment:
-      BOT_TOKEN: ${BOT_TOKEN}
-      DOMAIN: ${DOMAIN}
-      MAP_DL_MIRROR: ${MAP_DL_MIRROR}
     volumes:
       - discord:/bot/assets/skins
     restart: unless-stopped

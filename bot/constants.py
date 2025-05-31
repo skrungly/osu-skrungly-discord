@@ -1,5 +1,9 @@
 import os
 
+import dotenv
+
+dotenv.load_dotenv()
+
 # configure these in the `.env` file
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 DOMAIN = os.environ["DOMAIN"]
