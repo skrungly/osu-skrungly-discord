@@ -1,6 +1,7 @@
 import os
 
 # configure these in the `.env` file
+BOT_TOKEN = os.environ["BOT_TOKEN"]
 DOMAIN = os.environ["DOMAIN"]
 MAP_DL_MIRROR = os.environ["MAP_DL_MIRROR"]
 
