@@ -1,8 +1,7 @@
 from enum import IntFlag
 
-import aiohttp
 from discord import Colour, Embed
-from discord.ext.commands import Context, MemberConverter
+from discord.ext.commands import MemberConverter
 from discord.ext.commands.errors import MemberNotFound
 
 from bot.constants import API_URL, DOMAIN, OLD_API_URL
@@ -67,12 +66,7 @@ class Mods(IntFlag):
         return 1.0
 
 
-async def old_api_get(
-    session: aiohttp.ClientSession,
-    version: int,
-    endpoint: str,
-    params: dict | None = None
-):
+async def old_api_get(session, version, endpoint, params=None):
     url = f"{OLD_API_URL}/v{version}/{endpoint}"
     content = {}
 
@@ -83,12 +77,7 @@ async def old_api_get(
         return response.status, content
 
 
-async def fetch_difficulty(
-    session: aiohttp.ClientSession,
-    map_id: int,
-    mode: int,
-    mods: Mods
-):
+async def fetch_difficulty(session, map_id, mode, mods):
     url = f"https://osu.{DOMAIN}/difficulty-rating"
     data_json = {
         "beatmap_id": map_id,
@@ -103,7 +92,7 @@ async def fetch_difficulty(
     return 0.0
 
 
-async def send_error(ctx: Context, title: str, message: str | None = None):
+async def send_error(ctx, title, message=None):
     embed = Embed(
         title=title,
         color=Colour.brand_red(),
@@ -113,20 +102,12 @@ async def send_error(ctx: Context, title: str, message: str | None = None):
     await ctx.reply(embed=embed)
 
 
-async def api_get(
-    session: aiohttp.ClientSession,
-    endpoint: str,
-    params: dict | None = None
-):
+async def api_get(session, endpoint, params=None):
     """Send a GET request to an endpoint on the API."""
     return await session.get(f"{API_URL}/{endpoint}", params=params)
 
 
-async def resolve_player_info(
-    session: aiohttp.ClientSession,
-    ctx: Context,
-    user: str | None = None
-):
+async def resolve_player_info(session, ctx, user=None):
     """Attempt to resolve player info from a command argument.
 
     Args:
