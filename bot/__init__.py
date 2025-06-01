@@ -1,8 +1,7 @@
-import traceback
-
+from discord import Colour, Embed
 from discord.ext import commands
 
-from bot.utils import api_get, resolve_player_info, send_error
+from bot.utils import api_get, resolve_player_info
 
 
 class Chatot(commands.Bot):
@@ -12,10 +11,15 @@ class Chatot(commands.Bot):
         self.current_status = None
 
     async def on_command_error(self, ctx, err):
-        # TODO: this produces an unfriendly wall of error text. maybe
-        # we should make a private dev channel for these messages?
-        msg_block = '\n'.join(traceback.format_exception(err))
-        await send_error(ctx, "oops! something broke.", f"```{msg_block}```")
+        await super().on_command_error(ctx, err)
+
+        await ctx.reply(
+            embed=Embed(
+                title="oops! something went wrong.",
+                color=Colour.brand_red(),
+                description="".join(err.args)
+            )
+        )
 
     async def api_get(self, endpoint, params=None):
         """A wrapper around `bot.utils.api_get`."""

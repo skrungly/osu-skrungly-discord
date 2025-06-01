@@ -3,10 +3,11 @@ from io import BytesIO
 
 from discord import Colour, Embed, File
 from discord.ext import commands
+from discord.ext.commands.errors import CommandError
 from discord.ui import Button, View
 
 from bot.constants import API_STRFTIME, DOMAIN, MAP_DL_MIRROR
-from bot.utils import fetch_difficulty, Mods, send_error
+from bot.utils import fetch_difficulty, Mods
 
 
 class Scores(commands.Cog):
@@ -16,8 +17,6 @@ class Scores(commands.Cog):
     @commands.command()
     async def score(self, ctx, user=None):
         player = await self.chatot.resolve_player_info(ctx, user)
-        if not player:
-            return
 
         info_response = await self.chatot.api_get(
             endpoint=f"/players/{player['id']}/scores",
@@ -29,18 +28,14 @@ class Scores(commands.Cog):
 
         async with info_response:
             if info_response.status != 200:
-                await send_error(ctx, "unable to fetch scores.")
-                return
+                raise CommandError(
+                    f"error {info_response.status} when fetching scores."
+                )
 
             scores = await info_response.json()
 
         if not scores:
-            await send_error(
-                ctx,
-                f"couldn't find any scores for player {player['name']}!",
-                "if this seems wrong, it seriously is. let kingsley know!"
-            )
-            return
+            raise CommandError("no scores found for that player.")
 
         score = scores[0]
         beatmap = score["beatmap"]
@@ -61,8 +56,8 @@ class Scores(commands.Cog):
             )
 
             async with img_response:
-                if info_response.status != 200:
-                    await send_error(ctx, "score screenshot not available.")
+                if img_response.status != 200:
+                    raise CommandError("score screen could not be generated.")
 
                 img_buffer = BytesIO(await img_response.read())
                 img_buffer.seek(0)

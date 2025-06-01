@@ -1,10 +1,13 @@
 import asyncio
+import logging
 
 import aiohttp
 from discord import Intents
 
 from bot import Chatot
 from bot.constants import BOT_TOKEN
+
+logging.basicConfig(level=logging.INFO)
 
 
 async def main():
