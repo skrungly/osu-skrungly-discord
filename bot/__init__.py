@@ -5,6 +5,8 @@ from bot.utils import api_get, resolve_player_info
 
 
 class Chatot(commands.Bot):
+    """a slightly modified Bot class for common functionality."""
+
     def __init__(self, *args, http_session, **kwargs):
         super().__init__(*args, **kwargs)
         self.http_session = http_session
@@ -22,9 +24,9 @@ class Chatot(commands.Bot):
         )
 
     async def api_get(self, endpoint, params=None):
-        """A wrapper around `bot.utils.api_get`."""
+        """a simple wrapper around `bot.utils.api_get`."""
         return await api_get(self.http_session, endpoint, params)
 
     async def resolve_player_info(self, ctx, user=None):
-        """A wrapper around `bot.utils.resolve_player_info`."""
+        """a simple wrapper around `bot.utils.resolve_player_info`."""
         return await resolve_player_info(self.http_session, ctx, user)

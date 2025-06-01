@@ -6,6 +6,8 @@ from bot.constants import API_URL, DOMAIN, OLD_API_URL
 
 
 class Mods(IntFlag):
+    """represent and work with combinations of mods."""
+
     NOFAIL = "NF"
     EASY = "EZ"
     TOUCH_SCREEN = "TS"
@@ -47,24 +49,22 @@ class Mods(IntFlag):
         return member
 
     @property
-    def skin_name(self):
-        if len(self) != 1:
-            raise ValueError("expected single mod for skin element")
-
-        return f"selection-mod-{self.name.lower()}"
-
-    @property
     def speed(self):
+        """return the speed modifier for a set of mods."""
         if self.DOUBLETIME in self:
             return 1.5
 
-        elif self.HALFTIME in self:
+        if self.HALFTIME in self:
             return 0.75
 
         return 1.0
 
 
 async def old_api_get(session, version, endpoint, params=None):
+    """make a request to the game server's own API endpoints.
+
+    this function will be removed soon. new code should use `api_get`.
+    """
     url = f"{OLD_API_URL}/v{version}/{endpoint}"
     content = {}
 
@@ -76,6 +76,8 @@ async def old_api_get(session, version, endpoint, params=None):
 
 
 async def fetch_difficulty(session, map_id, mode, mods):
+    """fetch the difficulty of a map for a given mode and mods."""
+
     url = f"https://osu.{DOMAIN}/difficulty-rating"
     data_json = {
         "beatmap_id": map_id,
@@ -91,28 +93,28 @@ async def fetch_difficulty(session, map_id, mode, mods):
 
 
 async def api_get(session, endpoint, params=None):
-    """Send a GET request to an endpoint on the API."""
+    """send a GET request to an endpoint on the API."""
     return await session.get(f"{API_URL}/{endpoint}", params=params)
 
 
 async def resolve_player_info(session, ctx, user=None):
-    """Attempt to resolve player info from a command argument.
+    """attempt to resolve player info from a command argument.
 
-    Args:
-      session: An open aiohttp session with which to send the request.
-      ctx: The context of the command.
-      user: An optional user to fetch player info for. If a string is
+    args:
+      session: an open aiohttp session with which to send the request.
+      ctx: the context of the command.
+      user: an optional user to fetch player info for. if a string is
         provided and can be converted to a discord Member instance,
-        then their display name is used for the player query. If this
-        fails, the given user string will be used as-is. If no user is
+        then their display name is used for the player query. if this
+        fails, the given user string will be used as-is. if no user is
         specified, the author of the command is used instead.
 
-    Returns:
-        A dict containing player data.
+    returns:
+        a dict containing player data.
 
-    Raises:
-        BadArgument: If the API returns a 404 for the requested user.
-        RuntimeError: If the API returns any other non-200 response.
+    raises:
+        BadArgument: if the API returns a 404 for the requested user.
+        RuntimeError: if the API returns any other non-200 response.
     """
 
     if user:

@@ -5,12 +5,16 @@ from bot.utils import old_api_get
 
 
 class Tasks(commands.Cog):
+    """management of scheduled and repeated tasks."""
+
     def __init__(self, chatot):
         self.chatot = chatot
         self.status_loop.start()
 
     @tasks.loop(seconds=20)
     async def status_loop(self):
+        """update the bot status based on players online."""
+
         api_status, response = await old_api_get(
             self.chatot.http_session, version=1, endpoint="get_player_count"
         )

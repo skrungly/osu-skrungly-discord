@@ -11,6 +11,8 @@ logging.basicConfig(level=logging.INFO)
 
 
 async def main():
+    """set up and start the discord bot instance."""
+
     intents = Intents.default()
     intents.message_content = True
 

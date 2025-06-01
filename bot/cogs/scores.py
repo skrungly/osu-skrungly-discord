@@ -11,11 +11,15 @@ from bot.utils import fetch_difficulty, Mods
 
 
 class Scores(commands.Cog):
+    """commands related to scores set on the server!"""
+
     def __init__(self, chatot):
         self.chatot = chatot
 
     @commands.command()
     async def score(self, ctx, user=None):
+        """display info about a player's most recent score."""
+
         player = await self.chatot.resolve_player_info(ctx, user)
 
         info_response = await self.chatot.api_get(

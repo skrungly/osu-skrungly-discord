@@ -6,11 +6,15 @@ from bot.constants import DOMAIN, API_URL
 
 
 class Skins(commands.Cog):
+    """commands related to user-uploaded skins!"""
+
     def __init__(self, chatot):
         self.chatot = chatot
 
     @commands.command()
     async def skin(self, ctx, user=None):
+        """get a download link for a user-uploaded skin."""
+
         if ctx.message.attachments:
             profile_link = f"https://osu.{DOMAIN}"
 
