@@ -27,6 +27,7 @@ async def main():
             await chatot.load_extension("bot.cogs.scores")
             await chatot.load_extension("bot.cogs.skins")
             await chatot.load_extension("bot.cogs.tasks")
+            await chatot.load_extension("bot.cogs.utils")
 
             await chatot.start(BOT_TOKEN)
 
