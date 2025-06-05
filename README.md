@@ -41,13 +41,13 @@ then use the `venv` module to create a virtual environment:
 ```sh
 $ python -m venv .venv
 $ source .venv/bin/activate  # whenever you want to use the venv
-$ pip install -r requirements.txt
+(.venv) $ pip install -r requirements.txt
 ```
 
 you're now ready to launch the discord bot! it's as simple as
 
 ```sh
-$ python -m bot
+(.venv) $ python -m bot
 ```
 
 ## contributing
