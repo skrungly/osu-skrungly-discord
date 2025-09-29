@@ -23,8 +23,9 @@ class Scores(commands.Cog):
         player = await self.chatot.resolve_player_info(ctx, user)
 
         info_response = await self.chatot.api_get(
-            endpoint=f"/players/{player['id']}/scores",
+            endpoint=f"/scores",
             params={
+                "player": player['id'],
                 "sort": "recent",
                 "limit": 1
             }
