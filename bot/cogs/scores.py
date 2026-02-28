@@ -1,3 +1,4 @@
+import urllib.parse
 from datetime import datetime
 from io import BytesIO
 
@@ -74,9 +75,11 @@ class Scores(commands.Cog):
             timestamp=score["play_time"]
         )
 
+        escaped_player_name = urllib.parse.quote(player['name'])
+
         embed.set_author(
             name=player["name"],
-            url=f"https://osu.{DOMAIN}/u/{player['name']}",
+            url=f"https://osu.{DOMAIN}/u/{escaped_player_name}",
             icon_url=f"https://a.{DOMAIN}/{player['id']}"
         )
 
